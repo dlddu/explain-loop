@@ -15,8 +15,8 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-        # 이미지가 비루트 사용자로 돌게 되면 켤 것(distroless:nonroot 등).
-        # runAsNonRoot: true
+        # 이미지가 distroless:nonroot(uid 65532)로 돈다.
+        runAsNonRoot: true
       containers:
         - name: explain-loop
           # 태그의 단일 출처. main push 마다 CI 의 `pin` job 이 deploy 브랜치에서 이 자리를

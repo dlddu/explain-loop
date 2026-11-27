@@ -17,20 +17,28 @@ permissions:
   packages: read
 
 jobs:
-  # ── 자리(placeholder) ───────────────────────────────────────────────────
-  # TODO(k3s-app-bootstrap): 언어에 맞는 lint·unit 테스트로 채울 것.
+  # ── unit ─────────────────────────────────────────────────────────────────
   # job 을 더 쪼개면 pr.yml 은 고칠 필요가 없다 — 이 파일의 job 이 모두 성공해야
   # `test` 가 success 가 된다.
   unit:
-    name: unit (placeholder)
+    name: unit (go)
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sha }}
-      - name: Placeholder
-        run: echo "::warning::unit 테스트가 아직 없다 — .github/workflows/test.yml 의 unit job 을 채울 것"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then echo "gofmt 필요:"; echo "$unformatted"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test -race ./...
 
   # ── kind e2e ─────────────────────────────────────────────────────────────
   # 발행된 이미지로 deploy/overlays/e2e 를 올리고 기동·헬스체크까지 본다(스모크).
@@ -89,7 +97,24 @@ jobs:
           curl -fsS --retry 15 --retry-delay 2 --retry-all-errors \
             "http://127.0.0.1:18080/healthz"
 
-      # TODO(k3s-app-bootstrap): 기능 e2e(playwright, API 시나리오 등)를 여기 붙일 것.
+      - name: Smoke — MCP initialize · tools/list
+        run: |
+          set -euo pipefail
+          kubectl port-forward svc/explain-loop 18080:80 >/tmp/pf.log 2>&1 &
+          trap 'kill %1 2>/dev/null || true' EXIT
+          rpc() {
+            curl -fsS --retry 15 --retry-delay 2 --retry-all-errors \
+              -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+              -d "$1" http://127.0.0.1:18080/mcp
+          }
+          init="$(rpc '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"e2e","version":"0"}}}')"
+          echo "$init"
+          echo "$init" | jq -e '.result.serverInfo.name == "explain-loop"'
+          list="$(rpc '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')"
+          echo "$list"
+          echo "$list" | jq -e '.result.tools | type == "array"'
+
+      # TODO: PRD 기능이 붙으면 테스트 문서(T1–T4) 시나리오를 여기 e2e 로 옮긴다.
 
       - name: Dump cluster diagnostics on failure
         if: failure()

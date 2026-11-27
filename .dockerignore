@@ -1,0 +1,6 @@
+.git
+.github
+deploy
+docs
+README.md
+**/*_test.go

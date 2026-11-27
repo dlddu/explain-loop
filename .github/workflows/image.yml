@@ -33,6 +33,7 @@ on:
       - '!README.md'
       - '!docs/**'
       - '!.gitignore'
+      - '!**/*_test.go'
       - '!deploy/overlays/e2e/**'
       - '!.github/**'
       - '.github/workflows/image.yml'
