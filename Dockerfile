@@ -20,6 +20,7 @@ FROM gcr.io/distroless/static-debian12:nonroot AS runtime
 
 ENV LISTEN_ADDR=0.0.0.0:8080
 EXPOSE 8080
-USER nonroot:nonroot
+# runAsNonRoot 는 숫자 UID 여야 검증된다(distroless nonroot = 65532).
+USER 65532:65532
 COPY --from=builder /out/explain-loop /usr/local/bin/explain-loop
 ENTRYPOINT ["/usr/local/bin/explain-loop"]
